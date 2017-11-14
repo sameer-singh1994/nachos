@@ -2,6 +2,7 @@ package nachos.threads;
 
 import nachos.machine.*;
 
+import java.util.*; // Added
 /**
  * A <i>communicator</i> allows threads to synchronously exchange 32-bit
  * messages. Multiple threads can be waiting to <i>speak</i>,
@@ -14,6 +15,12 @@ public class Communicator {
      * Allocate a new communicator.
      */
     public Communicator() {
+//Communicater Proj 1 Added//////////////////////////////////////
+           this.isWordReady = false;
+           this.lock = new Lock();
+           this.speakerCond  = new Condition2(lock);
+           this.listenerCond = new Condition2(lock);
+///////////////////////////////////////////////////////////////
     }
 
     /**
@@ -34,7 +41,7 @@ public class Communicator {
       // while no available listener or word is ready(but listener hasn't fetched it)
       while(isWordReady || listener == 0)
       {
-        speakerCond.sleep();
+      speakerCond.sleep();
       }
 
       //speaker says a word
@@ -55,36 +62,73 @@ public class Communicator {
      * @return	the integer transferred.
      */
     public int listen() {
-//Implimentation of communicator///////////////////////////////
+      //Implimentation of communicator///////////////////////////////
 
 //listener acquires lock
-    lock.acquire();
+  lock.acquire();
 
 //increasing listeners
-    listener++;
+  listener++;
 
 //listener to sleep if word is not ready
-    while(isWordReady == false)
-    {
-      speakerCond.wakeAll();
-      listenerCond.sleep();
-    }
+  while(isWordReady == false)
+  {
+    speakerCond.wakeAll();
+    listenerCond.sleep();
+  }
 
 //listener recieves the word
 
-    int word = this.word;
+  int word = this.word;
 
 //reset the flag
-    isWordReady = false;
+  isWordReady = false;
 
 //Decreasing listener number
-    listener--;
+  listener--;
 
-    lock.release();
+  lock.release();
 
-    return word;
+  return word;
 
 
 //Implimentation of communicator///////////////////////////////
     }
+
+  private static class Speaker implements Runnable {
+	Speaker(Communicator comm, int word) {
+        this.comm = comm;
+        this.word = word;
+	}
+
+	public void run() {
+        comm.speak(this.word);
+	}
+
+    private int word = 0;
+    private Communicator comm;
+    }
+
+    private static class Listener implements Runnable {
+	Listener(Communicator comm) {
+        this.comm = comm;
+	}
+
+	public void run() {
+
+        int word = comm.listen();
+	}
+
+    private Communicator comm;
+    }
+
+
+    private int listener = 0;
+    private int speaker  = 0;
+    private int word = 0;
+    private boolean isWordReady;
+
+    private Lock lock;
+    private Condition2 speakerCond;
+    private Condition2 listenerCond; 
 }

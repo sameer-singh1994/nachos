@@ -2,6 +2,12 @@ package nachos.threads;
 
 import nachos.machine.*;
 
+import java.util.TreeSet;
+import java.util.Iterator;
+import java.util.SortedSet;
+
+import nachos.machine.*;
+
 /**
  * Uses the hardware timer to provide preemption, and to allow threads to sleep
  * until a certain time.
@@ -15,12 +21,11 @@ public class Alarm {
      * alarm.
      */
     public Alarm() {
-
       //Alarm class////////////////////////////////////////////////////
 
-      waiting = new TreeSet<WaitingThread>();
+         waiting = new TreeSet<WaitingThread>();
 
-      ////////////////////////////////////////////////////////////////
+     ////////////////////////////////////////////////////////////////
 
 	Machine.timer().setInterruptHandler(new Runnable() {
 		public void run() { timerInterrupt(); }
@@ -34,36 +39,34 @@ public class Alarm {
      * that should be run.
      */
     public void timerInterrupt() {
-	//KThread.currentThread().yield();
+	// KThread.currentThread().yield();
+  //Implementing Alarm class//////////////////////////////////////////////////////
 
 
-//Implementing Alarm class//////////////////////////////////////////////////////
+long time = Machine.timer().getTime();
 
+if (waiting.isEmpty())
+    return;
 
-  long time = Machine.timer().getTime();
+if (((WaitingThread) waiting.first()).time > time)
+    return;
 
-	if (waiting.isEmpty())
-	    return;
+Lib.debug(dbgInt, "Invoking Alarm.timerInterrupt at time = " + time);
 
-	if (((WaitingThread) waiting.first()).time > time)
-	    return;
+while (!waiting.isEmpty() &&
+       ((WaitingThread) waiting.first()).time <= time) {
+    WaitingThread next = (WaitingThread) waiting.first();
 
-	Lib.debug(dbgInt, "Invoking Alarm.timerInterrupt at time = " + time);
+    // Move due thread to waiting thread
+    next.thread.ready();
+    waiting.remove(next);
 
-	while (!waiting.isEmpty() &&
-	       ((WaitingThread) waiting.first()).time <= time) {
-	    WaitingThread next = (WaitingThread) waiting.first();
+    Lib.assertTrue(next.time <= time);
 
-      // Move due thread to waiting thread
-      next.thread.ready();
-	    waiting.remove(next);
+    Lib.debug(dbgInt, "  " + next.thread.getName());
+}
 
-      Lib.assertTrue(next.time <= time);
-
-	    Lib.debug(dbgInt, "  " + next.thread.getName());
-	}
-
-	Lib.debug(dbgInt, "  (end of Alarm.timerInterrupt)");
+Lib.debug(dbgInt, "  (end of Alarm.timerInterrupt)");
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -84,10 +87,14 @@ public class Alarm {
      * @see	nachos.machine.Timer#getTime()
      */
     public void waitUntil(long x) {
+
+
 	// for now, cheat just to get something working (busy waiting is bad)
+
 	long wakeTime = Machine.timer().getTime() + x;
+
 	// while (wakeTime > Machine.timer().getTime())
-	//     KThread.yield();
+	//    KThread.yield();
 
   //Implementing Alarm class///////////////////////////////////////////
 
@@ -107,13 +114,17 @@ public class Alarm {
 
     }
 //Introduced for Alarm function//////////////////////////////////////////////////
- private TreeSet<WaitingThread> waiting;
 
- private class WaitingThread implements Comparable {
 
-    WaitingThread(long time, KThread thread) {  
-	this.time = time;
-	this.thread = thread;
+
+    private static final char dbgInt = 'i';
+    private TreeSet<WaitingThread> waiting;
+
+    private class WaitingThread implements Comparable {
+
+    WaitingThread(long time, KThread thread) {
+        this.time = time;
+        this.thread = thread;
     }
 
 	public int compareTo(Object o) {
@@ -121,11 +132,11 @@ public class Alarm {
 
 	    // can't return 0 for unequal objects, so check all fields
 	    if (time < toOccur.time)
-	    return -1;
+            return -1;
 	    else if (time > toOccur.time)
-	    return 1;
+            return 1;
 	    else
-		return thread.compareTo(toOccur.thread);        
+	        return thread.compareTo(toOccur.thread);
 	}
 
     long time;
@@ -133,4 +144,5 @@ public class Alarm {
 
     }
 
+  
 }

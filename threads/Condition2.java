@@ -1,6 +1,7 @@
 package nachos.threads;
 
 import nachos.machine.*;
+import java.util.LinkedList; //ADDED
 
 /**
  * An implementation of condition variables that disables interrupt()s for
@@ -22,6 +23,8 @@ public class Condition2 {
      */
     public Condition2(Lock conditionLock) {
 	this.conditionLock = conditionLock;
+
+	waitQueue = new LinkedList<KThread>();  // +hy+
     }
 
     /**
@@ -46,6 +49,7 @@ public class Condition2 {
 
   ////////////////////////////////////////////////////////////////////
 
+
 	conditionLock.acquire();
     }
 
@@ -54,17 +58,13 @@ public class Condition2 {
      * current thread must hold the associated lock.
      */
     public void wake() {
+      //implementing condition variables///////////////////////////////
 
-  	Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+        boolean intStatus = Machine.interrupt().disable();
+      	((KThread)waitQueue.removeFirst()).ready();
+      	Machine.interrupt().restore(intStatus);
 
-    //implementing condition variables///////////////////////////////
-
-    boolean intStatus = Machine.interrupt().disable();
-  	((KThread)waitQueue.removeFirst()).ready();
-  	Machine.interrupt().restore(intStatus);
-
-    ///////////////////////////////////////////////////////////////
-
+        ///////////////////////////////////////////////////////////////
     }
 
     /**
@@ -72,15 +72,39 @@ public class Condition2 {
      * thread must hold the associated lock.
      */
     public void wakeAll() {
-  	Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+	Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
-    //Implementing condition variables///////////////////////////////
+  //Implementing condition variables///////////////////////////////
 
     while (!waitQueue.isEmpty())
   	    wake();
       }
 
-    /////////////////////////////////////////////////////////////////  
+    /////////////////////////////////////////////////////////////////
+
+    // Test code added by hy
+    private static class Condition2Test implements Runnable {
+	Condition2Test(Lock lock, Condition2 condition) {
+	    this.condition = condition;
+        this.lock = lock;
+	}
+
+	public void run() {
+        lock.acquire();
+
+        System.out.print(KThread.currentThread().getName() + " acquired lock\n");
+        condition.sleep();
+        System.out.print(KThread.currentThread().getName() + " acquired lock again\n");
+
+        lock.release();
+        System.out.print(KThread.currentThread().getName() + " released lock \n");
+	}
+
+    private Lock lock;
+    private Condition2 condition;
+    }
+
 
     private Lock conditionLock;
+    private LinkedList<KThread> waitQueue; 
 }
